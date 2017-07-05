@@ -1,0 +1,248 @@
+<html>
+<head>
+<title>Kaltura - Monthly Bandwidth and storage costs calculator</title>
+<link rel="shortcut icon" href="images/favicon.ico" type="image/vnd.microsoft.icon"/>
+<link rel="stylesheet" type="text/css" href="css/bandwidth.css" />
+<script>
+function populateForm()
+{
+    var vars = [], hash;
+    var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
+
+    for(var i = 0; i < hashes.length; i++) {
+        hash = hashes[i].split('=');
+        vars.push(hash[0]);
+        vars[hash[0]] = hash[1];
+    }
+    document.calc.numOfVids.value = parseInt(vars["numOfVids"]) || 200;
+    document.calc.avgLength.value = parseInt(vars["avgLength"]) || 15;
+    document.calc.uploadBitrate.value = parseInt(vars["uploadBitrate"]) || 12500;
+    document.calc.totalViews.value = parseInt(vars["totalViews"]) || 300000;
+    document.calc.lengthViews.value = parseInt(vars["lengthViews"]) || 45;
+    document.calc.avgBitrate.value = parseInt(vars["avgBitrate"]) || 2500;
+    document.calc.numInterval.checked = vars["numInterval"] || false;
+    document.calc.totalLiveEvents.value = parseInt(vars["totalLiveEvents"]) || 10;
+    document.calc.avgLiveViewers.value = parseInt(vars["avgLiveViewers"]) || 2500;
+    document.calc.lengthLiveEvents.value = parseInt(vars["lengthLiveEvents"]) || 45;
+}
+function calculate(){
+    // Initialize Variables
+	numOfVids = parseInt(document.calc.numOfVids.value) || 200;
+	avgLength = parseInt(document.calc.avgLength.value) || 15;
+	uploadBitrate = parseInt(document.calc.uploadBitrate.value) || 12500;
+	totalViews = parseInt(document.calc.totalViews.value) || 300000;
+	lengthViews = parseInt(document.calc.lengthViews.value) || 45;
+	avgBitrate = parseInt(document.calc.avgBitrate.value) || 2500;
+	totalLiveEvents = parseInt(document.calc.totalLiveEvents.value) || 10;
+	avgLiveViewers = parseInt(document.calc.avgLiveViewers.value) || 2500;
+	lengthLiveEvents = parseInt(document.calc.lengthLiveEvents.value) || 45;
+	totalBitrate = 0;
+    numInterval = 1;
+    
+    //Monthly multiplier
+    var totalStorageLabel = document.getElementById('totalStorageLabel');
+    if (document.getElementById('numInterval').checked) {
+        numInterval = 12;
+        totalStorageLabel.innerHTML = 'Gigabytes / Year';
+    } else {
+        totalStorageLabel.innerHTML = 'Gigabytes';
+    }
+            
+    
+    // Disable flavors that are higher bitrate than the source
+    // Playback Flavors
+    for (i=0;i<document.calc.transcodeFlavors.length;i++) {
+        if (document.calc.transcodeFlavors[i].value >= uploadBitrate) {
+            document.calc.transcodeFlavors[i].disabled = true;
+        } else {
+            document.calc.transcodeFlavors[i].disabled = false;
+        }
+    }
+    
+    // Download Flavors
+    for (i=0;i<document.calc.downloadFlavors.length;i++) {
+       if (document.calc.downloadFlavors[i].value >= uploadBitrate) {
+            document.calc.downloadFlavors[i].checked = false;
+            document.calc.downloadFlavors[i].disabled = true;
+        } else {
+            document.calc.downloadFlavors[i].disabled = false;
+        }
+    }
+    
+    // Source Flavor
+    if (document.calc.sourceFlavor.checked) {
+        totalBitrate += uploadBitrate;
+    }
+    
+    // Playback Flavors
+    for (i=0;i<document.calc.transcodeFlavors.length;i++) {
+        if (document.calc.transcodeFlavors[i].checked && !document.calc.transcodeFlavors[i].disabled) {
+            totalBitrate += parseInt(document.calc.transcodeFlavors[i].value);
+        }
+    }
+    
+    // Download Flavors
+    for (i=0;i<document.calc.downloadFlavors.length;i++) {
+        if (document.calc.downloadFlavors[i].checked && !document.calc.downloadFlavors[i].disabled) {
+            totalBitrate += parseInt(document.calc.downloadFlavors[i].value);
+        }
+    }
+    
+    // Calculate bandwidth and storage
+	document.calc.totalBitrate.value = totalBitrate;
+	document.calc.totalStorage.value = Math.ceil((numOfVids * avgLength * 60 * totalBitrate)/(8*1000*1000*100))*100*numInterval;
+	document.calc.vodBandwidth.value = Math.ceil((totalViews * (avgLength * (lengthViews / 100)) * 60 * avgBitrate)/(8*1000*1000*100))*100;
+	document.calc.liveBandwidth.value = Math.ceil((totalLiveEvents * avgLiveViewers * (lengthLiveEvents  * 60) * 1500)/(8*1000*1000*100))*100;
+	document.calc.totalBandwidth.value = parseInt(document.calc.vodBandwidth.value) + parseInt(document.calc.liveBandwidth.value);
+    
+}
+</script>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-89751735-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
+</head>
+<body onLoad="populateForm();calculate();">
+<div class="container">
+	<form name="calc" id="calc" method="GET">
+        <div id="header">
+            <img src="images/Logo_big_logo2_color_whiteBG.png" />
+            <h1>Bandwidth and Storage Calculator</h1>
+        </div>
+        <div class="col" id="leftcol">
+            <h2>VOD - Upload and Encoding</h2>
+            <h4>How many videos do you intend to upload into Kaltura?</h4>
+            <input type="text" id="numOfVids" name="numOfVids" placeholder="200" onInput="calculate()" />
+            <input type="checkbox" id="numInterval" name="numInterval" value="true" checked="true" onChange="calculate()" style="margin-left:5px;" />
+            <span>Monthly Uploads</span>
+            <h4>What is the average length of the uploaded videos (in minutes)?</h4>
+            <input type="text" id="avgLength" name="avgLength" placeholder="15" onInput="calculate()" />
+            <h4>What is the average bitrate of your uploaded videos?</h4>
+            <input type="text" id="uploadBitrate" name="uploadBitrate" placeholder="12500" onInput="calculate()" />
+            <p class="note"><i>This value should be in Kilobits per second</i></p>
+            
+            <h3>VOD - Flavor Selection</h3>
+            <label>
+                <input type="checkbox" id="sourceFlavor" checked="true" onChange="calculate()" />
+                <span>Source</span>
+            </label>
+            
+            <h4>VOD - Playback Flavors</h4>
+            <fieldset>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="25000" onChange="calculate()"  />
+                    <span>UHD/4K - OTT (H265/25000)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="4128" checked="true" onChange="calculate()"  />
+                    <span>HD/1080 - WEB (H264/4000)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="2628" checked="true"  onChange="calculate()"  />
+                    <span>HD/720 - WEB (H264/2500)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="1628" checked="true" onChange="calculate()" />
+                    <span>SD/Large - WEB/MBR (H264/1500)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="964" checked="true" onChange="calculate()" />
+                    <span>SD/Small - WEB/MBR (H264/900)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="664" checked="true" onChange="calculate()" />
+                    <span>Basic/Small - WEB/MBR (H264/600)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="464" checked="true" onChange="calculate()" />
+                    <span>Basic/Small - WEB/MBR (H264/400)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="264" onChange="calculate()" />
+                    <span>Basic/Small - MBR (H264/200)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="164" onChange="calculate()" />
+                    <span>Basic/Small - MBR (H264/100)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="transcodeFlavors" value="64" onChange="calculate()" />
+                    <span>Audio Only - MBR (H264/64)</span>
+                </label>
+            </fieldset>
+            <h4>VOD - Download Flavors</h4>
+            <fieldset>
+                <label>
+                    <input type="checkbox" id="downloadFlavors" value="25000" onChange="calculate()" />
+                    <span>UHD/4K Download - DNLD (H265/25000)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="downloadFlavors" value="6884" onChange="calculate()" />
+                    <span>HD/1080 Download - DNLD (H264/6500)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="downloadFlavors" value="4884" onChange="calculate()" />
+                    <span>HD/720 Download - DNLD (H264/4500)</span>
+                </label>
+                <label>
+                    <input type="checkbox" id="downloadFlavors" value="2884" onChange="calculate()" />
+                    <span>SD/540 Download - DNLD (H264/2500)</span>
+                </label>
+            </fieldset>
+            <p class="note"><i>Flavors with a higher bitrate than your source file will be disabled automatically</i></p>
+        </div>
+    
+        <div class="col" id="rightcol">
+            <h2>VOD - Consumption</h2>
+            <fieldset id="vod-consumption">
+                <h4>How many VOD views/plays do you expect during a typical month?</h4>
+                <input type="text" id="totalViews" name="totalViews" placeholder="300000" onInput="calculate()" />
+                <h4>What is the expected percentage viewed for your videos (retention)?</h4>
+                <span class="inputlabel"><input type="text" id="lengthViews" name="lengthViews" placeholder="45" onInput="calculate()" />%</span>
+                <h4>What is the average bitrate that you expect your viewers to consume?</h4>
+                <input type="text" id="avgBitrate" name="avgBitrate" placeholder="2500" onInput="calculate()" />
+                <p class="note"><i>This value should be in Kilobits per second</i></p>
+            </fieldset>
+            
+            <h2>Live - Consumption</h2>
+            <fieldset id="live-consumption">
+                <h4>How many viewers do you expect during a typical event?</h4>
+                <input type="text" id="avgLiveViewers" name="avgLiveViewers" placeholder="2500" onInput="calculate()" />
+                <h4>How many Live events do you expect during a typical month?</h4>
+                <input type="text" id="totalLiveEvents" name="totalLiveEvents" placeholder="10" onInput="calculate()" />
+                <h4>What is the expected duration of your Live events (in minutes)?</h4>
+                <input type="text" id="lengthLiveEvents" name="lengthLiveEvents" placeholder="45" onInput="calculate()" />
+            </fieldset>
+            
+            <div id="results">
+                <h2>Results</h2>
+                <h4>Total VOD Bitrate</h4>
+                <span class="inputlabel"><input type="text" id="totalBitrate" readonly />Kilobit/second</span>
+                <h4>Storage</h4>
+                <span class="inputlabel"><input type="text" id="totalStorage" readonly /><span id="totalStorageLabel">Gigabytes</span></span>
+                <h4>VOD Bandwidth</h4>
+                <span class="inputlabel"><input type="text" id="vodBandwidth" readonly />Gigabytes / Month</span>
+                <h4>Live Bandwidth</h4>
+                <span class="inputlabel"><input type="text" id="liveBandwidth" readonly />Gigabytes / Month</span>
+                <h4>Total Bandwidth</h4>
+                <span class="inputlabel"><input type="text" id="totalBandwidth" readonly />Gigabytes / Month</span>
+                <p class="note"><i>Results are rounded to nearest 100 Gigabytes</i></p>
+                <h4>Please verify all calculations with your Sales Representative or Customer Success Manager.</h4>
+            </div>   
+        </div>
+        <div id="buttons">
+            <div id="submit" onClick='document.getElementById("calc").submit();'>Submit</div>
+            <div id="reset" onClick='document.getElementById("calc").reset();calculate();'>Reset</div>
+        </div>
+	</form>
+
+</div>
+
+</body>
+</html>
